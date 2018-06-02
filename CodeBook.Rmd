@@ -1,0 +1,73 @@
+---
+title: "CodeBook for the Getting and Cleaning Data Course Project"
+author: "hetszunyu"
+date: "June 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#First, download and unzip the file. Then read the sensor data, the activities and the subject data for both sets.
+
+```{r}
+library(dplyr)
+library(tidyr)
+download.file("https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip", destfile="smartphone.zip")
+unzip("smartphone.zip")
+
+trainx<-read.table("./UCI HAR Dataset/train/X_train.txt")
+trainact<-read.csv("./UCI HAR Dataset/train/y_train.txt", header=FALSE, sep=" ")
+trainsubj<-read.csv("./UCI HAR Dataset/train/subject_train.txt", header=FALSE, sep=" ")
+
+testx<-read.table("./UCI HAR Dataset/test/X_test.txt")
+testact<-read.csv("./UCI HAR Dataset/test/y_test.txt", header=FALSE, sep=" ")
+testsubj<-read.csv("./UCI HAR Dataset/test/subject_test.txt", header=FALSE, sep=" ")
+features<-read.csv("./UCI HAR Dataset/features.txt", header=FALSE, sep=" ")
+```
+
+#Next, read the features file, and extract the 2nd column as a text. Then, using the features as titles for the sensor data columns, unite the training and test data into a single dataset. Finally, the column names are converted to lower case for search friendliness.
+
+```{r}
+features<-read.csv("./UCI HAR Dataset/features.txt", header=FALSE, sep=" ")
+featurestext<-as.character(features[,2])
+alldata<-rbind(data.frame(trainsubj, trainact, trainx), data.frame(testsubj, testact, testx))
+names(alldata)<-c(c("subject", "activity"), featurestext)
+names(alldata)<-tolower(names(alldata))
+```
+
+#Then, to extract mean and stdev data only, we search for mean and std in the column names, and subset the original data to contain only these columns (while keeping the subject and the activity columns, 1 and 2). The next step is to extract the activity labels and update the activity column accordingly.
+
+```{r}
+meanstd<-grep("mean|std", names(alldata))
+data.meanstd <- alldata[,c(1,2, meanstd)]
+labels<-read.table("./UCI HAR Dataset/activity_labels.txt", header=FALSE)
+labelstext<-as.character(labels[,2])
+data.meanstd$activity <- labelstext[data.meanstd$activity]
+```
+
+#On to the variable names, to convert them into something human-readable.
+
+```{r}
+names(data.meanstd)<-gsub("gyro", " Gyroscope ", names(data.meanstd))
+names(data.meanstd)<-gsub("acc", " Acceleration ", names(data.meanstd))
+names(data.meanstd)<-gsub("-mean", " Mean ", names(data.meanstd))
+names(data.meanstd)<-gsub("-std", " St. Dev. ", names(data.meanstd))
+names(data.meanstd)<-gsub("mag", " Magnitude ", names(data.meanstd))
+names(data.meanstd)<-gsub("^f", "Frequency ", names(data.meanstd))
+names(data.meanstd)<-gsub("^t", "Time ", names(data.meanstd))
+names(data.meanstd)<-gsub("bodybody", "body", names(data.meanstd))
+names(data.meanstd)<-gsub("()", "", names(data.meanstd))
+names(data.meanstd)<-gsub("mean", " mean", names(data.meanstd))
+names(data.meanstd)<-gsub("freq", "Frequency", names(data.meanstd))
+```
+
+#Finally, we create a new independent dataset that in the end produces a table withe the mean value for each measurement per subject and activity. To do this, the subject and activity columns are united, and then the data is grouped by this column (subject-activity pairs). Finally, summarize_all is used to extract the mean per subject and activity for all columns.
+
+```{r}
+newdataset <- data.meanstd
+uniteddata<-unite(newdataset, "Subject_Activity", c("subject", "activity"))
+meansdata<-summarize_all(groupeddata, .funs=mean)
+head(meansdata)
+```
