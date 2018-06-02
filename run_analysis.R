@@ -52,4 +52,6 @@ newdataset <- data.meanstd
 ##To get a mean for each subject/activity combo, I'll unite the subject 
 ##and the activity columns, then call summarize_all with .funs set to mean.
 uniteddata<-unite(newdataset, "Subject_Activity", c("subject", "activity"))
+groupeddata<-group_by(uniteddata, Subject_Activity)
 meansdata<-summarize_all(groupeddata, .funs=mean)
+write.table(meansdata, "tidydata.txt", row.name=FALSE)

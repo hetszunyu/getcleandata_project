@@ -68,6 +68,7 @@ names(data.meanstd)<-gsub("freq", "Frequency", names(data.meanstd))
 ```{r}
 newdataset <- data.meanstd
 uniteddata<-unite(newdataset, "Subject_Activity", c("subject", "activity"))
+groupeddata<-group_by(uniteddata, Subject_Activity)
 meansdata<-summarize_all(groupeddata, .funs=mean)
-head(meansdata)
+write.table(meansdata, "tidydata.txt", row.name=FALSE)
 ```
